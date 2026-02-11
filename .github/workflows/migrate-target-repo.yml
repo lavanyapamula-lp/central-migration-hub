@@ -9,7 +9,7 @@ on:
       parent_version:
         description: "New version of the Parent Library"
         required: true
-        default: "2.2.0-SNAPSHOT"
+        default: "2.0.0-SNAPSHOT"
 
 jobs:
   migrate:
@@ -39,9 +39,9 @@ jobs:
       - name: "📦 Update Custom Parent Library"
         working-directory: target-app
         run: |
-          # Updates 1.0.0 to 2.2.0-SNAPSHOT for your specific parent artifact
-          perl -i -0pe "s|(<artifactId>spring-boot-mongodb-parent</artifactId>\s*<version>).*?(</version>)|\${1}2.2.0-SNAPSHOT\${2}|g" pom.xml
-          echo "✅ Parent version forced to 2.2.0-SNAPSHOT"
+          # Updates 1.0.0 to 2.0.0-SNAPSHOT for your specific parent artifact
+          perl -i -0pe "s|(<artifactId>spring-boot-mongodb-parent</artifactId>\s*<version>).*?(</version>)|\${1}2.0.0-SNAPSHOT\${2}|g" pom.xml
+          echo "✅ Parent version forced to 2.0.0-SNAPSHOT"
 
       # ── STEP 2: OpenRewrite (AST Transformation) ─────────────────────
       - name: Run OpenRewrite
