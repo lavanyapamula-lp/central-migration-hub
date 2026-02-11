@@ -9,22 +9,23 @@ on:
       parent_version:
         description: "New version of the Parent Library"
         required: true
-        default: "2.0.0" # Version of your already-migrated parent
+        default: "2.2.0-SNAPSHOT"
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Central Hub (Playbook)
+      - name: Checkout Migration Toolkit
         uses: actions/checkout@v4
         with:
-          path: hub
+          # This clones your central repo into a folder named 'migration-toolkit'
+          path: migration-toolkit
 
       - name: Checkout Target App
         uses: actions/checkout@v4
         with:
           repository: ${{ github.event.inputs.target_repo }}
-          token: ${{ secrets.PAT_TOKEN }} # Needs 'repo' scope
+          token: ${{ secrets.PAT_TOKEN }}
           path: target-app
 
       - name: Setup Java 25
@@ -34,17 +35,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-     - name: "📦 Update Custom Parent Library"
+      # ── STEP 1: Update Parent Reference ────────────────────────────────
+      - name: "📦 Update Custom Parent Library"
         working-directory: target-app
         run: |
-          # Replaces the version for your specific parent artifactId
-          # Works for both 1.0.0 and 1.0.0-SNAPSHOT to 2.2.0-SNAPSHOT
+          # Updates 1.0.0 to 2.2.0-SNAPSHOT for your specific parent artifact
           perl -i -0pe "s|(<artifactId>spring-boot-mongodb-parent</artifactId>\s*<version>).*?(</version>)|\${1}2.2.0-SNAPSHOT\${2}|g" pom.xml
-          
-          echo "  ✔ Updated Parent to 2.2.0-SNAPSHOT"
-          
-          # Optional: Also update the Java version property if it's explicitly defined in the child
-          sed -i 's/<java.version>21<\/java.version>/<java.version>25<\/java.version>/g' pom.xml || true
+          echo "✅ Parent version forced to 2.2.0-SNAPSHOT"
 
       # ── STEP 2: OpenRewrite (AST Transformation) ─────────────────────
       - name: Run OpenRewrite
@@ -56,17 +53,11 @@ jobs:
 
       # ── STEP 3: Apply Playbook Rules (Shell logic) ────────────────────
       - name: "📖 Apply Playbook Rules"
-        working-directory: target-repo
+        working-directory: target-app
         run: |
-          # 1. Make the central script executable
-          # Note: The path depends on where you checked out your migration-toolkit
-          chmod +x ../migration-toolkit/scripts/playbook-rules.sh
-          
-          # 2. Run the script. This script handles:
-          #    - @MockBean -> @MockitoBean conversion
-          #    - Import statement updates (Critical!)
-          #    - Jackson and Security property renames
-          ../migration-toolkit/scripts/playbook-rules.sh .
+          # Reference the script from the checked-out toolkit folder
+          chmod +x ../scripts/playbook-rules.sh
+          ../scripts/playbook-rules.sh .
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
@@ -75,4 +66,4 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           commit-message: "chore: migrate to Spring Boot 4 and Java 25"
           title: "🚀 Migration: Spring Boot 4 / Java 25"
-          body: "Updated parent to ${{ github.event.inputs.parent_version }} and applied playbook rules."
+          body: "Updated parent to ${{ github.event.inputs.parent_version }} and applied playbook rules from migration-playbook.md."
